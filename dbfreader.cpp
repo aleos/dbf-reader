@@ -3,8 +3,7 @@
 #include <QDataStream>
 #include <QString>
 #include <QDebug>
-#include <QList>
-#include <QStringList>
+
 
 #include "dbfreader.h"
 
@@ -14,7 +13,7 @@ DbfReader::DbfReader()
 
 }
 
-bool DbfReader::openDbfFile(QString path)
+QList<QStringList> DbfReader::openDbfFile(QString path)
 {
     bool parseSuccessfull = true;
     dbfFile->setFileName(path);
@@ -87,6 +86,7 @@ bool DbfReader::openDbfFile(QString path)
         dbfData >> endOfHeader;
         if (endOfHeader == 0x0d) { // Can read rows
             QStringList str;
+            table.clear();
             for (quint32 row = 0; row < numberOfRows; ++row) {
                 for (quint16 column = 0; column < columnsCount; ++column) {
                     if (column == 0) {
@@ -100,6 +100,7 @@ bool DbfReader::openDbfFile(QString path)
                     }
                     str.append(rowByChars[column]);
                 }
+                table.append(str);
                 str.clear();
             }
         } else {
@@ -114,5 +115,5 @@ bool DbfReader::openDbfFile(QString path)
         dbfFile->close();
 
     }
-    return parseSuccessfull;
+    return table;
 }

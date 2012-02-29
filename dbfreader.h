@@ -1,15 +1,20 @@
 #ifndef DBFREADER_H
 #define DBFREADER_H
 
+#include <QList>
+#include <QStringList>
+
 class QFile;
 
 class DbfReader
 {
 public:
     DbfReader();
-    bool openDbfFile(QString path);
+    QList<QStringList> openDbfFile(QString path);
 private:
     QFile *dbfFile;
+
+    QList<QStringList> table;
 
     enum ColumnType
     {
