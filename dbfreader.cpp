@@ -3,6 +3,7 @@
 #include <QDataStream>
 #include <QString>
 #include <QDebug>
+#include <QTextCodec>
 
 
 #include "dbfreader.h"
@@ -15,6 +16,8 @@ DbfReader::DbfReader()
 
 QList<QStringList> DbfReader::openDbfFile(QString path)
 {
+    QTextCodec *cStringCodec = QTextCodec::codecForCStrings();
+    QTextCodec::setCodecForCStrings (QTextCodec::codecForName ("CP866"));
     bool parseSuccessfull = true;
     dbfFile->setFileName(path);
     if (dbfFile->open(QIODevice::ReadOnly)) {
@@ -52,6 +55,8 @@ QList<QStringList> DbfReader::openDbfFile(QString path)
 
         quint16 columnsCount = (sizeOfHeader - 1 - 32) / 32;
 
+        table.clear();
+        QStringList header;
         for (quint16 column = 0; column < columnsCount; ++column) {
             char columnName[11]; // Column name
             quint8 columnType;
@@ -60,6 +65,7 @@ QList<QStringList> DbfReader::openDbfFile(QString path)
             quint8 precision;
 
             dbfData.readRawData(columnName, 11);
+            header.append(QString(columnName).trimmed());
             dbfData >> columnType
                     >> columnDataOffset
                     >> columnSize
@@ -75,6 +81,8 @@ QList<QStringList> DbfReader::openDbfFile(QString path)
             columnOffsets.append(columnDataOffset);
         }
 
+        table.append(header);
+
         for (quint16 column = 0; column < columnsCount; ++column) {
             if (column != columnsCount - 1) {
                 rowByChars.append(new char[columnOffsets[column + 1] - columnOffsets[column]]);
@@ -86,7 +94,7 @@ QList<QStringList> DbfReader::openDbfFile(QString path)
         dbfData >> endOfHeader;
         if (endOfHeader == 0x0d) { // Can read rows
             QStringList str;
-            table.clear();
+
             for (quint32 row = 0; row < numberOfRows; ++row) {
                 for (quint16 column = 0; column < columnsCount; ++column) {
                     if (column == 0) {
@@ -95,10 +103,12 @@ QList<QStringList> DbfReader::openDbfFile(QString path)
                     }
                     if (column != columnsCount - 1) {
                         dbfData.readRawData(rowByChars[column], columnOffsets[column + 1] - columnOffsets[column]);
+                        str.append(QByteArray(rowByChars[column], columnOffsets[column + 1] - columnOffsets[column]).trimmed());
                     } else {
                         dbfData.readRawData(rowByChars[column], sizeOfRow - columnOffsets.last());
+                        str.append(QByteArray(rowByChars[column], sizeOfRow - columnOffsets.last()).trimmed());
                     }
-                    str.append(rowByChars[column]);
+
                 }
                 table.append(str);
                 str.clear();
@@ -115,5 +125,6 @@ QList<QStringList> DbfReader::openDbfFile(QString path)
         dbfFile->close();
 
     }
+    QTextCodec::setCodecForCStrings(cStringCodec);
     return table;
 }
